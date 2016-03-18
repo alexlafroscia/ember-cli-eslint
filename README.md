@@ -23,10 +23,21 @@ Adding the following to your parser after installing will solve this issue:
 ## Adding a Test Generator
 
 You may want to generate tests that pass/fail based on the eslint result.
+By default, `ember-cli-eslint` will add tests that will lint your files when you run
+`ember test`.  You can specify the test type like so:
 
-You can pass a `testGenerator` function to `EmberApp`. Use the `eslint` option.
 
-Example:
+```javascript
+// ember-cli-build.js
+var app = new EmberApp({
+  eslint: {
+    testFramework: 'qunit'  // 'mocha' is also supported.  'qunit' is the default value
+  }
+});
+```
+
+If you want to generate tests for a different framework, you can pass a `testGenerator` function to `EmberApp`.  Note: this is only necessary if you're using a testing framework
+other than QUnit or Mocha.
 
 ```javascript
 // ember-cli-build.js (or Brocfile.js on older versions of ember-cli)
@@ -60,19 +71,6 @@ function eslintTestGenerator(relativePath, errors) {
     jsStringEscape("\n" + render(errors)) + "');\n" +
    "});\n";
 }
-
-// Mocha test generator
-function eslintTestGenerator(relativePath, errors) {
-  var pass = !errors || errors.length === 0;
-  return "import { describe, it } from 'mocha';\n" +
-    "import { assert } from 'chai';\n" +
-    "describe('ESLint - " + path.dirname(relativePath) + "', function() {\n" +
-    "  it('" + relativePath + " should pass ESLint', function() {\n" +
-    "    assert.ok(" + pass + ", '" + relativePath + " should pass ESLint." +
-    jsStringEscape("\n" + render(errors)) + "');\n" +
-   "  });\n});\n";
-}
-
 ```
 
 ## Running tests
