@@ -1,4 +1,5 @@
 'use strict';
+var path = require('path');
 var eslint = require('broccoli-lint-eslint');
 var jsStringEscape = require('js-string-escape');
 
@@ -17,9 +18,17 @@ module.exports = {
 
   lintTree: function(type, tree) {
     var project = this.project;
+    var testFramework = this.options.testFramework || 'qunit';
+
+    var testGenerator = this.options.testGenerator;
+    if (!testGenerator && testFramework === 'qunit') {
+      testGenerator = qunitTestGenerator;
+    } else if (!testGenerator && testFramework === 'mocha') {
+      testGenerator = mochaTestGenerator;
+    }
 
     return eslint(tree, {
-      testGenerator: this.options.testGenerator || function(relativePath, errors) {
+      testGenerator: testGenerator || function(relativePath, errors) {
         if (!project.generateTestFile) {
           // Empty test generator. The reason we do that is that `lintTree`
           // will merge the returned tree with the `tests` directory anyway,
@@ -43,6 +52,27 @@ module.exports = {
     });
   }
 };
+
+function qunitTestGenerator(relativePath, errors) {
+  var pass = !errors || errors.length === 0;
+  return "import { module, test } from 'qunit';\n" +
+    "module('ESLint - " + path.dirname(relativePath) + "');\n" +
+    "test('" + relativePath + " should pass ESLint', function(assert) {\n" +
+    "  assert.ok(" + pass + ", '" + relativePath + " should pass ESLint." +
+    jsStringEscape("\n" + render(errors)) + "');\n" +
+   "});\n";
+}
+
+function mochaTestGenerator(relativePath, errors) {
+  var pass = !errors || errors.length === 0;
+  return "import { describe, it } from 'mocha';\n" +
+    "import { assert } from 'chai';\n" +
+    "describe('ESLint - " + path.dirname(relativePath) + "', function() {\n" +
+    "  it('" + relativePath + " should pass ESLint', function() {\n" +
+    "    assert.ok(" + pass + ", '" + relativePath + " should pass ESLint." +
+    jsStringEscape("\n" + render(errors)) + "');\n" +
+   "  });\n});\n";
+}
 
 function render(errors) {
   return errors.map(function(error) {
